@@ -1,0 +1,77 @@
+/* 差旅报销单详情页 - 设计稿样式 */
+.reimbursement-detail {
+  --rd-primary: #1890ff;
+  --rd-header-bg: rgb(242, 243, 246);
+  --rd-header-bar: #1890ff;
+  --rd-page-bg: #f0f2f5;
+  --rd-card-bg: #fff;
+  --rd-table-header-bg: #fafafa;
+  --rd-summary-row-bg: #fff7e6;
+  --rd-tip-bg: #fdf6ec;
+  --rd-tip-border: #faecd8;
+  --rd-content-width: 1200px;
+  --rd-font-field: 14px;
+  --rd-font-section: 16px;
+  --rd-font-title: 20px;
+  --rd-section-header-height: 36px;
+
+  font-size: var(--rd-font-field);
+  color: #303133;
+}
+
+/* 表单、输入、按钮等字段级文字 14px */
+.reimbursement-detail :deep(.el-form-item__label),
+.reimbursement-detail :deep(.el-input__inner),
+.reimbursement-detail :deep(.el-textarea__inner),
+.reimbursement-detail :deep(.el-select__wrapper),
+.reimbursement-detail :deep(.el-tree-select__wrapper),
+.reimbursement-detail :deep(.el-input-number .el-input__inner),
+.reimbursement-detail :deep(.el-button),
+.reimbursement-detail :deep(.el-table__cell) {
+  font-size: var(--rd-font-field);
+}
+
+.reimbursement-detail :deep(.el-form-item__label) {
+  color: #606266;
+}
+
+.reimbursement-detail .detail-table {
+  width: 100%;
+}
+
+.reimbursement-detail .detail-table :deep(.el-table__header th) {
+  background: var(--rd-table-header-bg) !important;
+  color: #606266;
+  font-weight: 500;
+  font-size: var(--rd-font-field);
+}
+
+.reimbursement-detail .detail-table :deep(.el-table__cell) {
+  font-size: var(--rd-font-field);
+}
+
+.reimbursement-detail .link-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--rd-primary);
+  font-size: var(--rd-font-field);
+  cursor: pointer;
+  user-select: none;
+}
+
+.reimbursement-detail .link-action:hover {
+  opacity: 0.85;
+}
+
+.reimbursement-detail .link-action .el-icon {
+  font-size: var(--rd-font-field);
+}
+
+/* .submit-success-msgbox .el-message-box__message {
+  text-align: center;
+} */
+
+/* #el-id-5294-522 .el-message-box__container {
+  text-align: center;
+} */
