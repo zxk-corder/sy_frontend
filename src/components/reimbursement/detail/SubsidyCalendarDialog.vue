@@ -364,6 +364,8 @@ function handleSave() {
 }
 
 .trip-type-label {
+  font-size: 16px;
+  font-weight: 700;
   color: #606266;
   margin-right: 8px;
 }
@@ -376,8 +378,8 @@ function handleSave() {
 .calendar-top-title {
   flex: 1;
   margin-left: 12px;
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 16px;
+  font-weight: 700;
   color: #303133;
 }
 
@@ -583,10 +585,6 @@ function handleSave() {
 
 .col-date {
   width: 148px;
-  text-align: left;
-}
-
-.calendar-table thead .col-date {
   text-align: center;
 }
 
@@ -614,16 +612,19 @@ function handleSave() {
 
 /* 出差日期列 */
 .date-cell {
+  position: relative;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 6px;
+  justify-content: center;
   min-height: 52px;
+  padding-right: 20px;
 }
 
 .date-cell-main {
-  flex: 1;
-  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
 }
 
 .date-cell-date {
@@ -635,6 +636,7 @@ function handleSave() {
 .date-cell-weekday-row {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 4px;
   margin-top: 6px;
 }
@@ -646,6 +648,10 @@ function handleSave() {
 }
 
 .date-cell-pin {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
   flex-shrink: 0;
   font-size: 16px;
   color: #c0c4cc;
