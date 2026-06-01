@@ -205,3 +205,11 @@ export interface ExportTaskResult {
   taskId: string
   status: string
 }
+
+export interface ExportStatusResult {
+  status: string
+  progress?: number
+  downloadUrl?: string
+  errorMsg?: string
+  message?: string
+}

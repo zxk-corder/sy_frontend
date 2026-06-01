@@ -74,6 +74,7 @@
       <el-col :span="6">
         <el-form-item label=" " class="query-actions-item">
           <div class="query-actions">
+            <el-button :loading="exporting" @click="emit('export')">导出</el-button>
             <el-button @click="emit('create')">新增</el-button>
             <el-button @click="emit('reset')">清除</el-button>
             <el-button type="primary" @click="emit('search')">搜索</el-button>
@@ -91,12 +92,14 @@ import { buildBusinessTypeTree } from '@/utils/businessTypeTree'
 
 defineProps<{
   query: ReimbursementQuery
+  exporting?: boolean
 }>()
 
 const emit = defineEmits<{
   search: []
   reset: []
   create: []
+  export: []
 }>()
 
 const companies = MOCK_COMPANIES

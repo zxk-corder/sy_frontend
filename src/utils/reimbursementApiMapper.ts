@@ -62,6 +62,21 @@ export function toPageQueryParams(
   }
 }
 
+/** 异步导出条件：与列表筛选一致（不分页） */
+export function toExportQueryParams(
+  query: ReimbursementQuery,
+): Omit<ReimPageQueryParams, 'current' | 'size'> {
+  return {
+    reimNo: query.reimNo,
+    reimTitle: query.title,
+    businessTripReason: query.reason,
+    companyId: query.reimCompanyId,
+    departmentId: query.reimDepartmentId,
+    reimburserId: query.reimburserId,
+    businessTypeId: query.businessTypeId,
+  }
+}
+
 /** 列表行：后端 VO → 前端 */
 export function toListItem(vo: ReimMainVO): ReimbursementListItem {
   return {

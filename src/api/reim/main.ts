@@ -1,5 +1,6 @@
 import request from '@/api/request'
 import type {
+  ExportStatusResult,
   ExportTaskResult,
   IdResult,
   PageResult,
@@ -57,7 +58,7 @@ export function exportReimAsync(query?: Partial<ReimPageQueryParams>) {
 
 /** 查询导出任务状态 */
 export function getExportStatus(taskId: string) {
-  return request.get<Record<string, unknown>>(`${PREFIX}/REIM_ExportStatus`, {
+  return request.get<ExportStatusResult>(`${PREFIX}/REIM_ExportStatus`, {
     params: { taskId },
   })
 }

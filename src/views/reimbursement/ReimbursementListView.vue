@@ -2,9 +2,11 @@
   <div class="list-page">
     <ReimbursementQueryForm
       :query="query"
+      :exporting="exporting"
       @search="search"
       @reset="resetQuery"
       @create="goCreate"
+      @export="handleExport"
     />
     <ReimbursementTable
       :data="tableData"
@@ -25,7 +27,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useRouter } from 'vue-router'
 import { cancelReim, getReimDetail, submitReim } from '@/api/reim/main'
@@ -37,8 +39,10 @@ import {
   type ReimbursementListItem,
 } from '@/types/reimbursement'
 import { canSubmitReimbursement } from '@/utils/reimbursementStatus'
+import { runReimbursementListExport } from '@/utils/reimbursementExport'
 
 const router = useRouter()
+const exporting = ref(false)
 const {
   query,
   tableData,
@@ -59,6 +63,20 @@ onMounted(() => {
 
 function goCreate() {
   router.push({ name: 'reimbursement-create' })
+}
+
+async function handleExport() {
+  if (exporting.value) return
+  exporting.value = true
+  try {
+    await runReimbursementListExport(query.value)
+  } catch (error) {
+    if (error instanceof Error && error.message) {
+      ElMessage.error(error.message)
+    }
+  } finally {
+    exporting.value = false
+  }
 }
 
 function goDetail(id: string) {
