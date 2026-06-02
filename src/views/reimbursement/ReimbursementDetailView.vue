@@ -376,9 +376,9 @@ async function saveDraft() {
 
   if (form.value.trips.length > 0) {
     await persistLocalTripsAndSubsidies(reimId)
-  } else {
-    await saveReim(toSaveParams(form.value, { includeTripList: false }))
   }
+  
+  await saveReim(toSaveParams(form.value, { includeTripList: false }))
 
   const main = await getReimDetail(reimId)
   form.value.version = main.version ?? 0
@@ -499,10 +499,8 @@ async function submitEditReimbursement() {
 
   await flushPendingDeletedTrips()
   await persistLocalTripsAndSubsidies(reimId)
-
-  if (form.value.trips.length === 0) {
-    await saveReim(toSaveParams(form.value, { includeTripList: false }))
-  }
+  
+  await saveReim(toSaveParams(form.value, { includeTripList: false }))
 
   const main = await getReimDetail(reimId)
   await submitReim({
