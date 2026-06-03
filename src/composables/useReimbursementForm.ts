@@ -1,4 +1,4 @@
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { DocumentStatus } from '@/types/reimbursement'
 import type { ReimbursementForm, SubsidyRecord, TripRecord } from '@/types/reimbursement'
@@ -64,6 +64,19 @@ export function useReimbursementForm() {
     sumMoney(form.value.subsidies.map((item) => item.subsidyAmount)),
   )
 
+  /** 按当前比例与补助总额重算各行分摊金额 */
+  function syncAllocationAmountsFromRatios() {
+    if (form.value.allocations.length === 0) return
+    form.value.allocations = syncAllocationAmounts(
+      recalcFirstRowRatio(form.value.allocations),
+      subsidyTotal.value,
+    )
+  }
+
+  watch(subsidyTotal, () => {
+    syncAllocationAmountsFromRatios()
+  })
+
   const expenseSummary = computed(() => {
     const mealParts: number[] = []
     const transportParts: number[] = []
@@ -84,10 +97,7 @@ export function useReimbursementForm() {
   })
 
   function syncAllocationFromSubsidy() {
-    form.value.allocations = syncAllocationAmounts(
-      recalcFirstRowRatio(form.value.allocations),
-      subsidyTotal.value,
-    )
+    syncAllocationAmountsFromRatios()
   }
 
   function buildSubsidyFromTrip(trip: TripRecord): SubsidyRecord {
@@ -211,7 +221,10 @@ export function useReimbursementForm() {
     if (index === 0) return
     const rows = [...form.value.allocations]
     rows[index] = { ...rows[index], ratio: roundRatio(ratioPercent / 100) }
-    form.value.allocations = rows
+    form.value.allocations = syncAllocationAmounts(
+      recalcFirstRowRatio(rows),
+      subsidyTotal.value,
+    )
   }
 
   function validateAllocationRatioOnBlur(index: number) {
