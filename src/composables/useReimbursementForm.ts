@@ -217,6 +217,12 @@ export function useReimbursementForm() {
     )
   }
 
+  /** 比例存小数 (0.5)；兼容误存为百分数 (50) */
+  function normalizeRatioDecimal(ratio: number): number {
+    if (!Number.isFinite(ratio)) return 0
+    return ratio > 1 ? roundRatio(ratio / 100) : roundRatio(ratio)
+  }
+
   function updateAllocationRatio(index: number, ratioPercent: number) {
     if (index === 0) return
     const rows = [...form.value.allocations]
@@ -229,10 +235,8 @@ export function useReimbursementForm() {
 
   function validateAllocationRatioOnBlur(index: number) {
     if (index === 0) return
-    const rawRatio = form.value.allocations[index].ratio
-    const ratioPercent = Number.isFinite(rawRatio)
-      ? Math.round(rawRatio * 10000) / 100
-      : 0
+    const ratioDecimal = normalizeRatioDecimal(form.value.allocations[index].ratio)
+    const ratioPercent = Math.round(ratioDecimal * 10000) / 100
 
     if (ratioPercent > 100) {
       ElMessage.warning({ message: '分摊比例不能大于100%', duration: 4000 })
@@ -241,7 +245,7 @@ export function useReimbursementForm() {
     }
 
     let rows = [...form.value.allocations]
-    rows[index] = { ...rows[index], ratio: roundRatio(ratioPercent / 100) }
+    rows[index] = { ...rows[index], ratio: ratioDecimal }
 
     const othersRatioSum = roundRatio(
       rows.slice(1).reduce((s, r) => s + r.ratio, 0),

@@ -119,6 +119,7 @@ const {
   validateAllocationRatioOnBlur,
   updateAllocationAmount,
   validateAllocationAmountOnBlur,
+  syncAllocationFromSubsidy,
   setReimburser,
   setDepartment,
   setCompany,
@@ -265,7 +266,9 @@ async function syncSplitFromServer() {
     toSplitParams(row, form.value.id!, index + 1),
   )
   const result = await calcSplitRatio(form.value.id, splitList)
+  // 后端按库内主单补助总额算金额；未保存补助时可能为 0，需用当前页总额重算金额
   form.value.allocations = result.map(toAllocationRecord)
+  syncAllocationFromSubsidy()
 }
 
 function onAddAllocationRow() {
