@@ -15,7 +15,7 @@ import {
   calcCalendarTotals,
 } from '@/utils/subsidy'
 import {
-  applyAllocationAmountUpdate,
+  applyAllocationRatioUpdate,
   equalizeAllocation,
   recalcFirstRowRatio,
   syncAllocationAmounts,
@@ -199,17 +199,7 @@ export function useReimbursementForm() {
 
   function resetAllocationRatioToZero(index: number) {
     if (index <= 0) return
-    const rows = [...form.value.allocations]
-    rows[index] = { ...rows[index], ratio: 0 }
-    form.value.allocations = syncAllocationAmounts(
-      recalcFirstRowRatio(rows),
-      subsidyTotal.value,
-    )
-  }
-
-  function resetAllocationAmountToZero(index: number) {
-    if (index <= 0) return
-    form.value.allocations = applyAllocationAmountUpdate(
+    form.value.allocations = applyAllocationRatioUpdate(
       form.value.allocations,
       index,
       0,
@@ -225,10 +215,10 @@ export function useReimbursementForm() {
 
   function updateAllocationRatio(index: number, ratioPercent: number) {
     if (index === 0) return
-    const rows = [...form.value.allocations]
-    rows[index] = { ...rows[index], ratio: roundRatio(ratioPercent / 100) }
-    form.value.allocations = syncAllocationAmounts(
-      recalcFirstRowRatio(rows),
+    form.value.allocations = applyAllocationRatioUpdate(
+      form.value.allocations,
+      index,
+      roundRatio(ratioPercent / 100),
       subsidyTotal.value,
     )
   }
@@ -244,11 +234,10 @@ export function useReimbursementForm() {
       return
     }
 
-    let rows = [...form.value.allocations]
-    rows[index] = { ...rows[index], ratio: ratioDecimal }
-
+    const previewRows = [...form.value.allocations]
+    previewRows[index] = { ...previewRows[index]!, ratio: ratioDecimal }
     const othersRatioSum = roundRatio(
-      rows.slice(1).reduce((s, r) => s + r.ratio, 0),
+      previewRows.slice(1).reduce((s, r) => s + (r.ratio || 0), 0),
     )
     if (othersRatioSum > 1) {
       ElMessage.warning({ message: '分摊比例合计不能大于100%', duration: 4000 })
@@ -256,7 +245,12 @@ export function useReimbursementForm() {
       return
     }
 
-    rows = syncAllocationAmounts(recalcFirstRowRatio(rows), subsidyTotal.value)
+    let rows = applyAllocationRatioUpdate(
+      form.value.allocations,
+      index,
+      ratioDecimal,
+      subsidyTotal.value,
+    )
     const totalAmount = sumMoney(rows.map((r) => r.amount))
     if (totalAmount > subsidyTotal.value && !moneyEquals(totalAmount, subsidyTotal.value)) {
       ElMessage.warning({
@@ -264,69 +258,6 @@ export function useReimbursementForm() {
         duration: 4000,
       })
       resetAllocationRatioToZero(index)
-      return
-    }
-
-    form.value.allocations = rows
-  }
-
-  function updateAllocationAmount(index: number, amount: number) {
-    if (index === 0) return
-    const rows = [...form.value.allocations]
-    rows[index] = { ...rows[index], amount: roundMoney(amount) }
-    form.value.allocations = rows
-  }
-
-  function validateAllocationAmountOnBlur(index: number) {
-    if (index === 0) return
-    const rawAmount = form.value.allocations[index].amount
-    const amount = Number.isFinite(rawAmount) ? roundMoney(rawAmount) : 0
-    const max = subsidyTotal.value
-
-    if (amount > max && !moneyEquals(amount, max)) {
-      ElMessage.warning({ message: '分摊金额不能大于补助总金额', duration: 4000 })
-      resetAllocationAmountToZero(index)
-      return
-    }
-
-    const othersAmount = sumMoney(
-      form.value.allocations
-        .filter((_, i) => i > 0 && i !== index)
-        .map((r) => r.amount),
-    )
-    const rowMax = roundMoney(max - othersAmount)
-    if (amount > rowMax && !moneyEquals(amount, rowMax)) {
-      ElMessage.warning({
-        message: '分摊金额合计不能大于补助总金额',
-        duration: 4000,
-      })
-      resetAllocationAmountToZero(index)
-      return
-    }
-
-    let rows = applyAllocationAmountUpdate(
-      form.value.allocations,
-      index,
-      amount,
-      max,
-    )
-
-    const othersRatioSum = roundRatio(
-      rows.slice(1).reduce((s, r) => s + r.ratio, 0),
-    )
-    if (othersRatioSum > 1) {
-      ElMessage.warning({ message: '分摊比例合计不能大于100%', duration: 4000 })
-      resetAllocationAmountToZero(index)
-      return
-    }
-
-    const totalAmount = sumMoney(rows.map((r) => r.amount))
-    if (totalAmount > max && !moneyEquals(totalAmount, max)) {
-      ElMessage.warning({
-        message: '分摊金额合计不能大于补助总金额',
-        duration: 4000,
-      })
-      resetAllocationAmountToZero(index)
       return
     }
 
@@ -436,8 +367,6 @@ export function useReimbursementForm() {
     equalizeAllocations,
     updateAllocationRatio,
     validateAllocationRatioOnBlur,
-    updateAllocationAmount,
-    validateAllocationAmountOnBlur,
     setReimburser,
     setDepartment,
     setCompany,

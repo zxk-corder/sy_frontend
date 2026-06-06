@@ -84,17 +84,15 @@
           <template #header>
             <span class="col-required">分摊金额</span>
           </template>
-          <template #default="{ row, $index }">
+          <template #default="{ row }">
             <div class="amount-input-wrap">
               <el-input-number
                 :model-value="row.amount"
                 :min="0"
                 :precision="2"
                 :controls="false"
-                :disabled="readonly || $index === 0"
+                disabled
                 class="amount-input"
-                @update:model-value="(v: number | undefined) => emit('update-amount', $index, v ?? 0)"
-                @blur="onAmountBlur($index)"
               />
             </div>
           </template>
@@ -149,19 +147,12 @@ const emit = defineEmits<{
   equalize: []
   'update-ratio': [index: number, percent: number]
   'validate-ratio-blur': [index: number]
-  'update-amount': [index: number, amount: number]
-  'validate-amount-blur': [index: number]
   'update-row': [index: number, row: AllocationRecord]
 }>()
 
 function onRatioBlur(index: number) {
   if (index === 0) return
   emit('validate-ratio-blur', index)
-}
-
-function onAmountBlur(index: number) {
-  if (index === 0) return
-  emit('validate-amount-blur', index)
 }
 
 const companies = MOCK_COMPANIES

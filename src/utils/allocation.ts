@@ -69,6 +69,38 @@ export function syncAllocationAmounts(
   }))
 }
 
+/** 按总额与比例计算单行分摊金额（分上取整） */
+export function amountFromRatio(totalAmount: number, ratio: number): number {
+  const totalCents = yuanToCents(totalAmount)
+  if (totalCents === 0) return 0
+  return centsToYuan(Math.round(totalCents * roundRatio(ratio)))
+}
+
+/**
+ * 修改第 2+ 行比例：重算该行金额 + 第 1 行比例与金额（其余行不变）
+ */
+export function applyAllocationRatioUpdate(
+  rows: AllocationRecord[],
+  index: number,
+  ratio: number,
+  totalAmount: number,
+): AllocationRecord[] {
+  if (index <= 0 || index >= rows.length) return rows
+
+  const total = roundMoney(totalAmount)
+  const ratioDecimal = roundRatio(ratio)
+
+  const next = [...rows]
+  next[index] = {
+    ...next[index]!,
+    ratio: ratioDecimal,
+    amount: amountFromRatio(total, ratioDecimal),
+  }
+
+  const withRatio = recalcFirstRowRatio(next)
+  return recalcFirstRowAmount(withRatio, total)
+}
+
 /** 根据第 2+ 行金额重算第一行分摊金额 */
 export function recalcFirstRowAmount(
   rows: AllocationRecord[],

@@ -38,8 +38,6 @@
           @equalize="onEqualizeAllocations"
           @update-ratio="onUpdateAllocationRatio"
           @validate-ratio-blur="onValidateAllocationRatioBlur"
-          @update-amount="onUpdateAllocationAmount"
-          @validate-amount-blur="onValidateAllocationAmountBlur"
           @update-row="onUpdateAllocationRow"
         />
 
@@ -57,7 +55,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useRoute, useRouter } from 'vue-router'
 import AllocationSection from '@/components/reimbursement/detail/AllocationSection.vue'
@@ -76,18 +74,15 @@ import {
   submitReim,
 } from '@/api/reim/main'
 import { saveSubsidyCalendar } from '@/api/reim/calendar'
-import { calcSplitRatio } from '@/api/reim/split'
 import { deleteTrip, listTripsByReimId, saveTrip } from '@/api/reim/trip'
 import { useReimbursementForm } from '@/composables/useReimbursementForm'
 import type { AllocationRecord, SubsidyRecord, TripRecord } from '@/types/reimbursement'
 import { cloneReimbursementFormForCopy } from '@/utils/reimbursementCopy'
 import {
   isNewReimbursement,
-  toAllocationRecord,
   toCreateSaveParams,
   toSaveParams,
   toSaveSubsidyParams,
-  toSplitParams,
   toTripParams,
   toTripRecord,
 } from '@/utils/reimbursementApiMapper'
@@ -103,6 +98,8 @@ const router = useRouter()
 const pageLoading = ref(false)
 /** 编辑页本地删除、尚未调接口的已落库行程 id */
 const pendingDeletedTripIds = ref<string[]>([])
+/** 忽略已过期 initPage 的异步结果，避免离开页面后仍改状态触发 Vue 卸载错误 */
+let initPageVersion = 0
 
 const {
   form,
@@ -117,9 +114,6 @@ const {
   equalizeAllocations,
   updateAllocationRatio,
   validateAllocationRatioOnBlur,
-  updateAllocationAmount,
-  validateAllocationAmountOnBlur,
-  syncAllocationFromSubsidy,
   setReimburser,
   setDepartment,
   setCompany,
@@ -186,7 +180,12 @@ async function persistLocalTripsAndSubsidies(reimId: string) {
   }
 }
 
+function isInitPageStale(version: number) {
+  return version !== initPageVersion
+}
+
 async function initPage() {
+  const version = ++initPageVersion
   const id = route.params.id as string | undefined
   const copyFrom = route.query.copyFrom as string | undefined
 
@@ -195,6 +194,7 @@ async function initPage() {
     if (!id) {
       if (copyFrom) {
         const source = await fetchReimbursementDetail(copyFrom)
+        if (isInitPageStale(version)) return
         if (source) {
           loadForm(cloneReimbursementFormForCopy(source))
           resetPendingDeletedTrips()
@@ -210,6 +210,7 @@ async function initPage() {
     }
 
     const detail = await fetchReimbursementDetail(id)
+    if (isInitPageStale(version)) return
     if (detail) {
       loadForm(detail)
       resetPendingDeletedTrips()
@@ -218,16 +219,23 @@ async function initPage() {
       router.replace({ name: 'reimbursement-list' })
     }
   } catch {
+    if (isInitPageStale(version)) return
     if (id) {
       ElMessage.warning('加载报销单失败')
       router.replace({ name: 'reimbursement-list' })
     }
   } finally {
-    pageLoading.value = false
+    if (!isInitPageStale(version)) {
+      pageLoading.value = false
+    }
   }
 }
 
 onMounted(initPage)
+
+onBeforeUnmount(() => {
+  initPageVersion += 1
+})
 
 watch(
   () => [route.params.id, route.query.copyFrom],
@@ -260,17 +268,6 @@ function onUpdateSubsidy(subsidy: SubsidyRecord) {
   updateSubsidy(subsidy)
 }
 
-async function syncSplitFromServer() {
-  if (!form.value.id || isCreateRoute()) return
-  const splitList = form.value.allocations.map((row, index) =>
-    toSplitParams(row, form.value.id!, index + 1),
-  )
-  const result = await calcSplitRatio(form.value.id, splitList)
-  // 后端按库内主单补助总额算金额；未保存补助时可能为 0，需用当前页总额重算金额
-  form.value.allocations = result.map(toAllocationRecord)
-  syncAllocationFromSubsidy()
-}
-
 function onAddAllocationRow() {
   if (isReadOnly.value) return
   addAllocationRow()
@@ -286,33 +283,10 @@ function onUpdateAllocationRatio(index: number, percent: number) {
   updateAllocationRatio(index, percent)
 }
 
-function onUpdateAllocationAmount(index: number, amount: number) {
+function onValidateAllocationRatioBlur(index: number) {
   if (isReadOnly.value) return
-  updateAllocationAmount(index, amount)
-}
-
-async function onValidateAllocationRatioBlur(index: number) {
-  if (isReadOnly.value) return
+  // 比例失焦：仅校验；金额由 applyAllocationRatioUpdate 按当前行+首行倒挤
   validateAllocationRatioOnBlur(index)
-  if (form.value.id) {
-    try {
-      await syncSplitFromServer()
-    } catch {
-      /* 本地校验结果已保留 */
-    }
-  }
-}
-
-async function onValidateAllocationAmountBlur(index: number) {
-  if (isReadOnly.value) return
-  validateAllocationAmountOnBlur(index)
-  if (form.value.id) {
-    try {
-      await syncSplitFromServer()
-    } catch {
-      /* 本地校验结果已保留 */
-    }
-  }
 }
 
 async function onRemoveAllocation(id: string) {
