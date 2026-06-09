@@ -23,6 +23,7 @@ import {
 import { getDaysBetween } from '@/utils/date'
 import { moneyEquals, roundMoney, roundRatio, sumMoney } from '@/utils/money'
 import type { SubsidyDayItem } from '@/types/reimbursement'
+import { calcSplitRatio } from '@/api/reim/split'
 
 function createEmptyForm(): ReimbursementForm {
   return {
@@ -215,15 +216,10 @@ export function useReimbursementForm() {
 
   function updateAllocationRatio(index: number, ratioPercent: number) {
     if (index === 0) return
-    form.value.allocations = applyAllocationRatioUpdate(
-      form.value.allocations,
-      index,
-      roundRatio(ratioPercent / 100),
-      subsidyTotal.value,
-    )
+    form.value.allocations[index].ratio = roundRatio(ratioPercent / 100)
   }
 
-  function validateAllocationRatioOnBlur(index: number) {
+  async function validateAllocationRatioOnBlur(index: number) {
     if (index === 0) return
     const ratioDecimal = normalizeRatioDecimal(form.value.allocations[index].ratio)
     const ratioPercent = Math.round(ratioDecimal * 10000) / 100
@@ -245,23 +241,32 @@ export function useReimbursementForm() {
       return
     }
 
-    let rows = applyAllocationRatioUpdate(
-      form.value.allocations,
-      index,
-      ratioDecimal,
-      subsidyTotal.value,
-    )
-    const totalAmount = sumMoney(rows.map((r) => r.amount))
-    if (totalAmount > subsidyTotal.value && !moneyEquals(totalAmount, subsidyTotal.value)) {
-      ElMessage.warning({
-        message: '分摊金额合计不能大于补助总金额',
-        duration: 4000,
-      })
+    try {
+      const splitParams = previewRows.map((r, i) => ({
+        id: r.id.startsWith('alloc_') ? undefined : r.id,
+        sortNo: i + 1,
+        projectId: r.projectId,
+        projectName: r.projectName,
+        splitRatio: r.ratio,
+        splitAmount: r.amount,
+        companyId: r.reimCompanyId,
+        companyName: r.reimCompanyName,
+      }))
+      
+      const res = await calcSplitRatio(form.value.id, splitParams, subsidyTotal.value)
+      
+      form.value.allocations = res.map((vo, i) => ({
+        id: vo.id || previewRows[i].id,
+        reimCompanyId: vo.companyId || '',
+        reimCompanyName: vo.companyName || '',
+        projectId: vo.projectId || '',
+        projectName: vo.projectName || '',
+        ratio: vo.splitRatio || 0,
+        amount: vo.splitAmount || 0,
+      }))
+    } catch (e) {
       resetAllocationRatioToZero(index)
-      return
     }
-
-    form.value.allocations = rows
   }
 
   function normalizeDayAmounts(day: SubsidyDayItem): SubsidyDayItem {
